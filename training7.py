@@ -51,6 +51,45 @@ def calculate_green_time(frame):
 
 st.title("Live Traffic Detection")
 
+# Sidebar Features
+st.sidebar.markdown("💡 **How it Works**")
+st.sidebar.write("1. Upload an image or video.")
+st.sidebar.write("2. The system detects vehicles within 80m.")
+st.sidebar.write("3. Calculates optimal green light duration.")
+st.sidebar.write("4. Switches lanes every 60 seconds.")
+st.sidebar.write("5. Displays processed output with insights.")
+
+st.sidebar.markdown("📚 **More Databases**")
+st.sidebar.write("Explore more traffic-related datasets on Kaggle:")
+st.sidebar.write("[Kaggle Traffic Datasets](https://www.kaggle.com/datasets?search=traffic)")
+
+st.sidebar.markdown("📞 **Contact**")
+st.sidebar.write("[LinkedIn Profile](https://www.linkedin.com/in/anand-kumar-91461a19a)")
+
+st.sidebar.markdown("🛠 **Help & Support**")
+st.sidebar.write("- [GitHub Issues](https://github.com/Anandkumae/Adaptivetraffic1-app/issues)")
+st.sidebar.write("- [LinkedIn](https://www.linkedin.com/in/anand-kumar-91461a19a)")
+st.sidebar.write("- Local Developer Contact: anandkumar06091561@gmail.com")
+
+st.sidebar.markdown("---")
+st.sidebar.markdown("English(India)")
+st.sidebar.markdown("---")
+
+st.sidebar.markdown("© 2025 **ats2025**. All rights reserved.")
+
+# "Back to Top" button at the very end of the sidebar
+back_to_top = st.sidebar.button("🔝 Back to Top")
+if back_to_top:
+    st.markdown(
+        """
+        <script>
+            const sidebar = document.querySelector('div[data-testid="stSidebar"]');
+            sidebar.scrollTop = 0;
+        </script>
+        """,
+        unsafe_allow_html=True,
+    )
+
 # Option to choose between live video or image capture
 mode = st.radio("Select Mode:", ("Live Video", "Capture Image"))
 
@@ -73,13 +112,6 @@ if mode == "Live Video":
             cv2.putText(img, f"Cars: {car_count}", (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
             cv2.putText(img, f"Trucks/Buses: {truck_bus_count}", (10, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
 
-            # Debugging: Print frame count and detection results
-            st.sidebar.write(f"Frame {self.frame_count}:")
-            st.sidebar.write(f"Green Time: {green_time:.2f} sec")
-            st.sidebar.write(f"Motorcycles: {motorcycle_count}")
-            st.sidebar.write(f"Cars: {car_count}")
-            st.sidebar.write(f"Trucks/Buses: {truck_bus_count}")
-
             return img
 
     webrtc_streamer(
@@ -87,7 +119,7 @@ if mode == "Live Video":
         mode=WebRtcMode.SENDRECV,
         video_transformer_factory=VideoTransformer,
         media_stream_constraints={"video": True, "audio": False},
-        async_transform=True,  # Enable asynchronous processing
+        async_transform=True,
     )
 
 ### 📸 2️⃣ Capture Image
@@ -102,6 +134,12 @@ elif mode == "Capture Image":
 
         # Display processed image
         st.image(frame, channels="BGR", caption="Captured Image with Detections")
+
+        # Show detection results
+        st.write(f"Green Light Time: {green_time:.2f} sec")
+        st.write(f"Motorcycles: {motorcycle_count}")
+        st.write(f"Cars: {car_count}")
+        st.write(f"Trucks/Buses: {truck_bus_count}")
 
         # Show detection results
         st.write(f"Green Light Time: {green_time:.2f} sec")
