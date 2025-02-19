@@ -2,6 +2,7 @@ import streamlit as st
 import cv2
 import numpy as np
 from ultralytics import YOLO
+from streamlit_webrtc import webrtc_streamer, VideoTransformerBase, WebRtcMode
 
 # Load YOLO model
 model = YOLO("yolov8n.pt")
@@ -21,8 +22,10 @@ def calculate_green_time(frame):
     if frame is None:
         return 10, 0, 0, 0
 
+    # Run YOLO model on the frame
     results = model(frame)
 
+    # Check if results are valid
     if len(results) == 0 or not hasattr(results[0], "boxes") or results[0].boxes is None:
         return 10, 0, 0, 0
 
@@ -48,19 +51,60 @@ def calculate_green_time(frame):
 
 st.title("Live Traffic Detection")
 
-uploaded_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
+# Option to choose between live video or image capture
+mode = st.radio("Select Mode:", ("Live Video", "Capture Image"))
 
-if uploaded_file is not None:
-    file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
-    frame = cv2.imdecode(file_bytes, 1)
-    
-    green_time, motorcycle_count, car_count, truck_bus_count = calculate_green_time(frame)
-    
-    # Display processed image
-    st.image(frame, channels="BGR", caption="Uploaded Image with Detections")
-    
-    # Show detection results
-    st.write(f"Green Light Time: {green_time:.2f} sec")
-    st.write(f"Motorcycles: {motorcycle_count}")
-    st.write(f"Cars: {car_count}")
-    st.write(f"Trucks/Buses: {truck_bus_count}")
+### 🚀 1️⃣ Live Video Streaming with WebRTC
+if mode == "Live Video":
+    class VideoTransformer(VideoTransformerBase):
+        def __init__(self):
+            self.frame_count = 0
+
+        def transform(self, frame):
+            self.frame_count += 1
+            img = frame.to_ndarray(format="bgr24")
+
+            # Calculate green time and vehicle counts
+            green_time, motorcycle_count, car_count, truck_bus_count = calculate_green_time(img)
+
+            # Add text overlay
+            cv2.putText(img, f"Green Time: {green_time:.2f} sec", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+            cv2.putText(img, f"Motorcycles: {motorcycle_count}", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+            cv2.putText(img, f"Cars: {car_count}", (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+            cv2.putText(img, f"Trucks/Buses: {truck_bus_count}", (10, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+
+            # Debugging: Print frame count and detection results
+            st.sidebar.write(f"Frame {self.frame_count}:")
+            st.sidebar.write(f"Green Time: {green_time:.2f} sec")
+            st.sidebar.write(f"Motorcycles: {motorcycle_count}")
+            st.sidebar.write(f"Cars: {car_count}")
+            st.sidebar.write(f"Trucks/Buses: {truck_bus_count}")
+
+            return img
+
+    webrtc_streamer(
+        key="traffic-detection",
+        mode=WebRtcMode.SENDRECV,
+        video_transformer_factory=VideoTransformer,
+        media_stream_constraints={"video": True, "audio": False},
+        async_transform=True,  # Enable asynchronous processing
+    )
+
+### 📸 2️⃣ Capture Image
+elif mode == "Capture Image":
+    camera_image = st.camera_input("Take a picture")
+
+    if camera_image is not None:
+        file_bytes = np.asarray(bytearray(camera_image.read()), dtype=np.uint8)
+        frame = cv2.imdecode(file_bytes, 1)
+
+        green_time, motorcycle_count, car_count, truck_bus_count = calculate_green_time(frame)
+
+        # Display processed image
+        st.image(frame, channels="BGR", caption="Captured Image with Detections")
+
+        # Show detection results
+        st.write(f"Green Light Time: {green_time:.2f} sec")
+        st.write(f"Motorcycles: {motorcycle_count}")
+        st.write(f"Cars: {car_count}")
+        st.write(f"Trucks/Buses: {truck_bus_count}")
